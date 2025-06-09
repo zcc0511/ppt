@@ -82,10 +82,16 @@ export const useSnapshotStore = defineStore('snapshot', {
       // 快照数大于1时，需要保证撤回操作后维持页面焦点不变：也就是将倒数第二个快照对应的索引设置为当前页的索引
       // https://github.com/pipipi-pikachu/PPTist/issues/27
       if (snapshotLength >= 2) {
-        db.snapshots.update(allKeys[snapshotLength - 2] as number, { index: slidesStore.slideIndex })
+        const updateKey = allKeys[snapshotLength - 2]
+        if (typeof updateKey === 'number') {
+          db.snapshots.update(updateKey, { index: slidesStore.slideIndex })
+        }
       }
   
-      await db.snapshots.bulkDelete(needDeleteKeys)
+      const numericKeysToDelete = needDeleteKeys.filter(key => typeof key === 'number') as number[]
+      if (numericKeysToDelete.length > 0) {
+        await db.snapshots.bulkDelete(numericKeysToDelete)
+      }
   
       this.setSnapshotCursor(snapshotLength - 1)
       this.setSnapshotLength(snapshotLength)

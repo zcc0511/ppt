@@ -24,75 +24,76 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue';
-import { storeToRefs } from 'pinia';
-import { useSlidesStore } from '@/store/slides';
-import { useMainStore } from '@/store/main';
-import type { PPTAnimation, PPTElement } from '@/types/slides';
-import { ANIMATION_CLASS_PREFIX, ENTER_ANIMATIONS, EXIT_ANIMATIONS, ATTENTION_ANIMATIONS } from '@/configs/animation';
+import { ref, computed } from 'vue'
+import { storeToRefs } from 'pinia'
+import { useSlidesStore } from '@/store/slides'
+import { useMainStore } from '@/store/main'
+import type { PPTAnimation } from '@/types/slides'
+import { ENTER_ANIMATIONS, EXIT_ANIMATIONS, ATTENTION_ANIMATIONS } from '@/configs/animation'
 
-const slidesStore = useSlidesStore();
-const mainStore = useMainStore();
+const slidesStore = useSlidesStore()
+const mainStore = useMainStore()
 
-const { currentSlide, currentSlideAnimations } = storeToRefs(slidesStore);
-const { elements: currentSlideElements } = storeToRefs(mainStore); // Assuming elements are in mainStore, adjust if in slidesStore directly for current slide
+const { currentSlide } = storeToRefs(slidesStore)
+// const { currentSlideAnimations } = storeToRefs(slidesStore) // Unused for now
+// const { elements: currentSlideElements } = storeToRefs(mainStore) // Unused for now
 
-const scale = ref(50); // pixels per second
-const timelineGridRef = ref<HTMLDivElement | null>(null);
+const scale = ref(50) // pixels per second
+const timelineGridRef = ref<HTMLDivElement | null>(null)
 
-// Flatten all known animation effects for easy lookup
-const allAnimationEffects = computed(() => {
-  const effects: Record<string, string> = {};
-  [...ENTER_ANIMATIONS, ...EXIT_ANIMATIONS, ...ATTENTION_ANIMATIONS].forEach(group => {
-    group.children.forEach(anim => {
-      effects[anim.value] = anim.name;
-    });
-  });
-  return effects;
-});
+// Flatten all known animation effects for easy lookup (currently unused, but might be useful later)
+// const allAnimationEffects = computed(() => {
+//   const effects: Record<string, string> = {};
+//   [...ENTER_ANIMATIONS, ...EXIT_ANIMATIONS, ...ATTENTION_ANIMATIONS].forEach(group => {
+//     group.children.forEach(anim => {
+//       effects[anim.value] = anim.name
+//     })
+//   })
+//   return effects
+// })
 
 const currentAnimations = computed(() => {
-  return currentSlide.value?.animations || [];
-});
+  return currentSlide.value?.animations || []
+})
 
 const getElementShortName = (elId: string) => {
-  const element = currentSlide.value?.elements.find(el => el.id === elId);
-  if (!element) return 'Unknown';
-  return `${element.type.substring(0, 4)}...${elId.substring(0,3)}`;
-};
+  const element = currentSlide.value?.elements.find(el => el.id === elId)
+  if (!element) return 'Unknown'
+  return `${element.type.substring(0, 4)}...${elId.substring(0, 3)}`
+}
 
 const getAnimationStyle = (animation: PPTAnimation) => {
-  const startTimeMs = animation.startTime || 0;
-  const durationMs = animation.duration;
+  const startTimeMs = animation.startTime || 0
+  const durationMs = animation.duration
   return {
     left: `${(startTimeMs / 1000) * scale.value}px`,
     width: `${(durationMs / 1000) * scale.value}px`,
     backgroundColor: getAnimationColor(animation.type),
-  };
-};
+  }
+}
 
 const getAnimationColor = (type: 'in' | 'out' | 'attention') => {
-  if (type === 'in') return '#68a490'; // Greenish
-  if (type === 'out') return '#d86344'; // Reddish
-  if (type === 'attention') return '#e8b76a'; // Yellowish
-  return '#ccc';
-};
+  if (type === 'in') return '#68a490' // Greenish
+  if (type === 'out') return '#d86344' // Reddish
+  if (type === 'attention') return '#e8b76a' // Yellowish
+  return '#ccc'
+}
 
 const zoomIn = () => {
-  scale.value = Math.min(500, scale.value + 20);
-};
+  scale.value = Math.min(500, scale.value + 20)
+}
 
 const zoomOut = () => {
-  scale.value = Math.max(10, scale.value - 20);
-};
+  scale.value = Math.max(10, scale.value - 20)
+}
 
 // Placeholder for drag functionality
 const onDragStart = (animation: PPTAnimation, event: MouseEvent) => {
-  console.log('Attempting to drag:', animation.id, event.clientX);
+  // console.log('Attempting to drag:', animation.id, event.clientX)
   // Drag logic will be more complex, involving tracking mouse movement,
   // calculating new startTime, and dispatching store actions.
   // This will be implemented in a subsequent subtask.
-};
+}
 
 // TODO: Implement timeline axis rendering
 // TODO: Implement drag-and-drop to change startTime

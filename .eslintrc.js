@@ -67,6 +67,7 @@ module.exports = {
     'no-console': isProduction ? 'error' : 'warn',
     'no-debugger': isProduction ? 'error' : 'warn',
     '@typescript-eslint/explicit-module-boundary-types': 'off',
+    'vue/multi-word-component-names': 'off',
   },
   overrides: [
     {

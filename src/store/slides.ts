@@ -67,7 +67,8 @@ export const useSlidesStore = defineStore('slides', {
       for (const anim of allAnimations) {
         if (typeof anim.startTime === 'number') {
           timedAnimations.push(anim)
-        } else {
+        }
+        else {
           untimedAnimations.push(anim)
         }
       }
@@ -81,7 +82,8 @@ export const useSlidesStore = defineStore('slides', {
         for (let i = 1; i < timedAnimations.length; i++) {
           if (timedAnimations[i].startTime === currentGroup[0].startTime) {
             currentGroup.push(timedAnimations[i])
-          } else {
+          }
+          else {
             formatedTimedAnimations.push({ animations: currentGroup, autoNext: false })
             currentGroup = [timedAnimations[i]]
           }
@@ -232,16 +234,16 @@ export const useSlidesStore = defineStore('slides', {
     },
 
     updateAnimationDuration(data: { animationId: string, duration: number }) {
-      const { animationId, duration } = data;
-      const slideIndex = this.slideIndex;
-      const slide = this.slides[slideIndex];
-      if (!slide.animations) return;
+      const { animationId, duration } = data
+      const slideIndex = this.slideIndex
+      const slide = this.slides[slideIndex]
+      if (!slide.animations) return
 
-      const animationIndex = slide.animations.findIndex(anim => anim.id === animationId);
+      const animationIndex = slide.animations.findIndex(anim => anim.id === animationId)
       if (animationIndex > -1) {
-        slide.animations[animationIndex].duration = duration;
+        slide.animations[animationIndex].duration = duration
         // Make sure reactivity is triggered if just updating a property in an array item
-        this.slides[slideIndex].animations = [...slide.animations];
+        this.slides[slideIndex].animations = [...slide.animations]
       }
       // Consider adding history snapshot here if needed
     },
