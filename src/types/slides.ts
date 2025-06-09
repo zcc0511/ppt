@@ -587,6 +587,7 @@ export interface PPTAnimation {
   type: 'in' | 'out' | 'attention';
   duration: number;
   trigger: 'click' | 'meantime' | 'auto';
+  startTime?: number;
 }
 
 /**

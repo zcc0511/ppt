@@ -51,35 +51,63 @@ export const useSlidesStore = defineStore('slides', {
     },
 
     // 格式化的当前页动画
-    // 将触发条件为“与上一动画同时”的项目向上合并到序列中的同一位置
-    // 为触发条件为“上一动画之后”项目的上一项添加自动向下执行标记
+    // 优先处理带有 startTime 的动画，按时间排序并分组
+    // 然后处理没有 startTime 的动画，沿用旧的 click, meantime, auto 逻辑
     formatedAnimations(state) {
       const currentSlide = state.slides[state.slideIndex]
       if (!currentSlide?.animations) return []
 
       const els = currentSlide.elements
       const elIds = els.map(el => el.id)
-      const animations = currentSlide.animations.filter(animation => elIds.includes(animation.elId))
+      const allAnimations = currentSlide.animations.filter(animation => elIds.includes(animation.elId))
 
-      const formatedAnimations: FormatedAnimation[] = []
-      for (const animation of animations) {
-        if (animation.trigger === 'click' || !formatedAnimations.length) {
-          formatedAnimations.push({ animations: [animation], autoNext: false })
-        }
-        else if (animation.trigger === 'meantime') {
-          const last = formatedAnimations[formatedAnimations.length - 1]
-          last.animations = last.animations.filter(item => item.elId !== animation.elId)
-          last.animations.push(animation)
-          formatedAnimations[formatedAnimations.length - 1] = last
-        }
-        else if (animation.trigger === 'auto') {
-          const last = formatedAnimations[formatedAnimations.length - 1]
-          last.autoNext = true
-          formatedAnimations[formatedAnimations.length - 1] = last
-          formatedAnimations.push({ animations: [animation], autoNext: false })
+      const timedAnimations: PPTAnimation[] = []
+      const untimedAnimations: PPTAnimation[] = []
+
+      for (const anim of allAnimations) {
+        if (typeof anim.startTime === 'number') {
+          timedAnimations.push(anim)
+        } else {
+          untimedAnimations.push(anim)
         }
       }
-      return formatedAnimations
+
+      // Sort timed animations by startTime
+      timedAnimations.sort((a, b) => (a.startTime || 0) - (b.startTime || 0))
+
+      const formatedTimedAnimations: FormatedAnimation[] = []
+      if (timedAnimations.length > 0) {
+        let currentGroup: PPTAnimation[] = [timedAnimations[0]]
+        for (let i = 1; i < timedAnimations.length; i++) {
+          if (timedAnimations[i].startTime === currentGroup[0].startTime) {
+            currentGroup.push(timedAnimations[i])
+          } else {
+            formatedTimedAnimations.push({ animations: currentGroup, autoNext: false })
+            currentGroup = [timedAnimations[i]]
+          }
+        }
+        formatedTimedAnimations.push({ animations: currentGroup, autoNext: false })
+      }
+
+      const formatedUntimedAnimations: FormatedAnimation[] = []
+      for (const animation of untimedAnimations) {
+        if (animation.trigger === 'click' || !formatedUntimedAnimations.length) {
+          formatedUntimedAnimations.push({ animations: [animation], autoNext: false })
+        }
+        else if (animation.trigger === 'meantime') {
+          const last = formatedUntimedAnimations[formatedUntimedAnimations.length - 1]
+          last.animations = last.animations.filter(item => item.elId !== animation.elId)
+          last.animations.push(animation)
+          formatedUntimedAnimations[formatedUntimedAnimations.length - 1] = last
+        }
+        else if (animation.trigger === 'auto') {
+          const last = formatedUntimedAnimations[formatedUntimedAnimations.length - 1]
+          last.autoNext = true
+          formatedUntimedAnimations[formatedUntimedAnimations.length - 1] = last
+          formatedUntimedAnimations.push({ animations: [animation], autoNext: false })
+        }
+      }
+      return [...formatedTimedAnimations, ...formatedUntimedAnimations]
     },
   
     layouts(state) {
@@ -185,6 +213,37 @@ export const useSlidesStore = defineStore('slides', {
         return el.id === id ? omit(el, propsNames) : el
       })
       this.slides[slideIndex].elements = (elements as PPTElement[])
+    },
+
+    updateAnimationStartTime(data: { animationId: string, startTime: number }) {
+      const { animationId, startTime } = data
+      const slideIndex = this.slideIndex
+      const animations = this.slides[slideIndex].animations
+      if (!animations) return
+
+      const animationIndex = animations.findIndex(anim => anim.id === animationId)
+      if (animationIndex > -1) {
+        animations[animationIndex].startTime = startTime
+        // Optionally, trigger could be changed here, e.g.:
+        // animations[animationIndex].trigger = 'timed';
+        this.slides[slideIndex].animations = [...animations]
+        // Consider adding history snapshot here if undo/redo is implemented
+      }
+    },
+
+    updateAnimationDuration(data: { animationId: string, duration: number }) {
+      const { animationId, duration } = data;
+      const slideIndex = this.slideIndex;
+      const slide = this.slides[slideIndex];
+      if (!slide.animations) return;
+
+      const animationIndex = slide.animations.findIndex(anim => anim.id === animationId);
+      if (animationIndex > -1) {
+        slide.animations[animationIndex].duration = duration;
+        // Make sure reactivity is triggered if just updating a property in an array item
+        this.slides[slideIndex].animations = [...slide.animations];
+      }
+      // Consider adding history snapshot here if needed
     },
   },
 })
